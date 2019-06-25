@@ -1,14 +1,11 @@
 #!/usr/bin/env wpython
 
-import youtube_dl
-import sys
-import os
-import re
-from sys import argv
 import ffmpeg
+import os
 import pathlib
+import re
+import youtube_dl
 
-#Per each file
 def cropping(filename):
     print("Processing: ", filename)
 
