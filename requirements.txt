@@ -1,2 +1,2 @@
-youtube-dl==2019.6.8
+youtube-dl
 ffmpeg-python
