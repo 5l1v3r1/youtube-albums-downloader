@@ -60,12 +60,9 @@ def cropping(filename):
         strfile = myfile.read()
         gr1 = re.findall(r"silence_end: \d+.\d+", strfile)
         gr2 = re.findall(r"silence_start: \d+.\d+", strfile)
-        print(strfile)
 
     ends = []
     begs = []
-
-    print(ends)
 
     #get numbers from substrings
     for a in gr1:
@@ -93,11 +90,11 @@ def cropping(filename):
             end_diff = 0
 
         ffmpeg_arg = ("ffmpeg -loglevel quiet -ss {2}"
-                      "-i \"{0}\" -to {3} \"{1}.mp3\" -threads 4")
+                      " -i \"{0}\" -to {3} \"{1}.mp3\" -threads 4")
 
         ffmpeg_arg = ffmpeg_arg.format(
            filename,
-           i,
+           band_title + "- " + str(i),
            silence_beg,
            silence_end - silence_beg)
 
