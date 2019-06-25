@@ -1,10 +1,14 @@
-#used in parsing service .txt file
 from __future__ import unicode_literals
-import ffmpeg
 import youtube_dl
+import sys
 import os
 import re
 from sys import argv
+
+if len(argv) == 1:
+    print(("Create a txt file in the same folder"
+        "with YT links to videos and pass as arg."))
+    sys.exit(0)
 
 # Download data and config
 download_options = {
