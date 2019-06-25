@@ -1,3 +1,4 @@
+import ffmpeg
 import youtube_dl
 import os
 import re
@@ -34,13 +35,13 @@ def cropping(filename):
     print("Processing: ", no_extension)
 
     #getting the songs' titles
-    with open(no_extension + '.description', 'rt') as description:
-        strdesc = description.read()
-        gr = re.findall(r"d+:\d+", strdesc)
+    #with open(no_extension + '.description', 'rt') as description:
+        #strdesc = description.read()
+        #gr = re.findall(r"d+:\d+", strdesc)
 
-    titles = []
+    #titles = []
 
-    print(gr)
+    #print(gr)
 
     #for a in titlelines:
         #titles.append((gr[0]))
@@ -56,6 +57,8 @@ def cropping(filename):
 
     ends = []
     begs = []
+
+    print(ends)
 
     #get numbers from substrings
     for a in gr1:
@@ -82,7 +85,8 @@ def cropping(filename):
         else:
             end_diff = 0
 
-        ffmpeg_arg = "ffmpeg -loglevel quiet -ss {2} -i \"{0}\" -to {3} \"{1}.mp3\" -threads 4"
+        ffmpeg_arg = ("ffmpeg -loglevel quiet -ss {2}"
+                      "-i \"{0}\" -to {3} \"{1}.mp3\" -threads 4")
 
         ffmpeg_arg = ffmpeg_arg.format(
            filename,
