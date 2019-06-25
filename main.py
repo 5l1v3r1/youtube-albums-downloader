@@ -4,6 +4,7 @@ import ffmpeg
 import os
 import pathlib
 import re
+import sys
 import youtube_dl
 
 def cropping(filename):
@@ -29,8 +30,7 @@ def cropping(filename):
     ends = [0] + [float(y) for y in ends_str]
 
     band_name, _ = [x.strip(" ") for x in filename.split('-')]
-    for i, pair in enumerate(zip(ends, starts)):
-        start, duration = pair[0], (pair[1] - pair[0])
+    for i, (start, end) in enumerate(zip(ends, starts)):
         res_name = f"{band_name} - {i+1}"
 
         command = f'ffmpeg \
@@ -38,14 +38,14 @@ def cropping(filename):
                     -threads 4 \
                     -ss {start} \
                     -i "{filename}" \
-                    -t {duration} \
+                    -to {end} \
                     "{res_name}.mp3"'
 
         os.system(command)
 
 if __name__ == "__main__":
-    if len(argv) == 1:
-        argv.append("links.txt")
+    if len(sys.argv) == 1:
+        sys.argv.append("links.txt")
 
     if not os.path.exists('songs'):
         os.mkdir('songs')
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     }
 
     with youtube_dl.YoutubeDL(download_options) as dl:
-        with open('../' + argv[1], 'r') as f:
+        with open('../' + sys.argv[1], 'r') as f:
             for song_url in f:
                 dl.download([song_url])
 
