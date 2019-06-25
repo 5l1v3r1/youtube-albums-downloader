@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import youtube_dl
 import sys
 import os
@@ -53,16 +52,18 @@ def cropping(filename):
         #titles.append((gr[0]))
 
     #generating a txt file with silence parts
-    os.system(f"ffmpeg -i \"{filename}\" -af silencedetect=noise=-40dB:d=0.5 -f null - 2> vol.txt -threads 4")
+    os.system(("ffmpeg -i \"{0}\" -af silencedetect=noise=-50dB:d=0.5"
+        " -f null - 2> vol.txt -threads 4".format(filename)))
+
     print("Service file has been made.")
 
     with open ('vol.txt', 'rt') as myfile:
         strfile = myfile.read()
         gr1 = re.findall(r"silence_end: \d+.\d+", strfile)
         gr2 = re.findall(r"silence_start: \d+.\d+", strfile)
-
-    ends = []
+   
     begs = []
+    ends = []
 
     #get numbers from substrings
     for a in gr1:
@@ -73,19 +74,23 @@ def cropping(filename):
         gr = re.findall("\d+\.\d+", a)
         ends.append(float(gr[0]))
 
-    #begs and ends lens are equal
-    for i in range(len(begs)):
-        silence_end = ends[i]
-        silence_beg = begs[i]
+    #this can happen if no silence in the very beginning of the track
+    if len(ends) != len(begs):
+        begs = [0] + begs
+
+    #begs and ends lens are or now are equal if wasn't
+    for i in range(len(ends)):
+        begin_cut = begs[i]
+        end_cut = ends[i]
 
         if i != 0:
-            beg_diff = (silence_beg - ends[i - 1]) / 2
+            beg_diff = (begin_cut - ends[i - 1]) / 2
         else:
-            silence_beg = 0
+            begin_cut = 0
             beg_diff = 0
 
         if i < len(begs) - 1:
-            end_diff = (begs[i+1] - silence_end) / 2
+            end_diff = (begs[i+1] - end_cut) / 2
         else:
             end_diff = 0
 
@@ -95,8 +100,8 @@ def cropping(filename):
         ffmpeg_arg = ffmpeg_arg.format(
            filename,
            band_title + "- " + str(i),
-           silence_beg,
-           silence_end - silence_beg)
+           begin_cut,
+           end_cut - begin_cut)
 
         os.system(ffmpeg_arg)
 
