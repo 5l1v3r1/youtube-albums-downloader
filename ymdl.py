@@ -1,4 +1,5 @@
-#some test commit
+#used in parsing service .txt file
+from __future__ import unicode_literals
 import ffmpeg
 import youtube_dl
 import os
@@ -48,13 +49,14 @@ def cropping(filename):
         #titles.append((gr[0]))
 
     #generating a txt file with silence parts
-    os.system("ffmpeg -i \"{}\" -af silencedetect=noise=-40dB:d=0.5 -f null - 2> vol.txt -threads 4".format(filename))
+    os.system(f"ffmpeg -i \"{filename}\" -af silencedetect=noise=-40dB:d=0.5 -f null - 2> vol.txt -threads 4")
     print("Service file has been made.")
 
     with open ('vol.txt', 'rt') as myfile:
         strfile = myfile.read()
         gr1 = re.findall(r"silence_end: \d+.\d+", strfile)
         gr2 = re.findall(r"silence_start: \d+.\d+", strfile)
+        print(strfile)
 
     ends = []
     begs = []
