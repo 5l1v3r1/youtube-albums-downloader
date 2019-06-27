@@ -1,12 +1,25 @@
 #!/usr/bin/env wpython
 
+import argparse
 import ffmpeg
 import os
 import pathlib
 import re
+import sys
 import time
 import youtube_dl
 
+def init_argparse():
+    parser = argparse.ArgumentParser(description="Download your favourite albums from YouTube.")
+
+    group = parser.add_mutually_exclusive_group(required=True)
+
+    group.add_argument("-l", "--link", help="Link to album on YouTube")
+    group.add_argument("-f", "--filename", help="File with YouTube links")
+
+    parser.add_argument("-o", "--out", default="songs", help="Output folder (default: songs)")
+
+    return parser
 
 def try_chdir_except_create(dirname):
     if not os.path.exists(dirname):
@@ -67,12 +80,20 @@ def crop_album_to_songs(filename, silence_starts, silence_ends):
 
 
 if __name__ == "__main__":
-    if os.path.exists("links.txt"):
-        with open("links.txt", "r") as file:
+    parser = init_argparse()
+    args = vars(parser.parse_args(args=None if sys.argv[1:] else ["-h"]))
+
+    link, filename, outdir = args["link"], args["filename"], args["out"]
+
+    if filename and os.path.exists(filename):
+        with open(filename, "r") as file:
             links = [line.rstrip("\n") for line in file.readlines()]
 
-            try_chdir_except_create("songs")
-            download_from_youtube(links)
+    elif link:
+        links = [link]
+
+    try_chdir_except_create(outdir)
+    download_from_youtube(links)
 
     for filename in os.listdir(os.curdir):
         ext = pathlib.Path(filename).suffix
