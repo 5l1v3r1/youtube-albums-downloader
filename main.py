@@ -4,54 +4,18 @@ import ffmpeg
 import os
 import pathlib
 import re
-import sys
 import time
 import youtube_dl
 
-def cropping(filename):
-    print("Processing: ", filename)
 
-    stderr = (ffmpeg
-    .input(filename, threads=4)
-    .filter("silencedetect", n="-50dB", d=0.5)
-    .output("-", format="null")
-    .run(capture_stderr=True)[1]
-    .decode("utf-8"))
+def try_chdir_except_create(dirname):
+    if not os.path.exists(dirname):
+        os.mkdir(dirname)
 
-    print("Service file has been made.")
+    os.chdir(dirname)
 
-    starts_str = re.findall("silence_start: (\d+.\d+)", stderr)
-    ends_str = re.findall("silence_end: (\d+.\d+)", stderr)
 
-    starts = [float(x) for x in starts_str]
-    ends = [0] + [float(y) for y in ends_str]
-
-    band_name, _ = [x.strip(" ") for x in filename.split('-')]
-    for i, (start, end) in enumerate(zip(ends, starts)):
-        res_name = f"{band_name} - {i+1}.mp3"
-
-        kwargs = {
-            "ss": start,
-            "to": end,
-            "threads": 2,
-        }
-
-        (ffmpeg
-        .input(filename, **kwargs)
-        .output(res_name, format="mp3")
-        .run_async(quiet=True, overwrite_output=True))
-
-        time.sleep(7) # Prevent full CPU usage
-
-if __name__ == "__main__":
-    if len(sys.argv) == 1:
-        sys.argv.append("links.txt")
-
-    if not os.path.exists('songs'):
-        os.mkdir('songs')
-    else:
-        os.chdir('songs')
-
+def download_from_youtube(links):
     download_options = {
         'format': 'bestaudio/best',
         'outtmpl': '%(title)s.%(ext)s',
@@ -60,13 +24,59 @@ if __name__ == "__main__":
     }
 
     with youtube_dl.YoutubeDL(download_options) as dl:
-        with open('../' + sys.argv[1], 'r') as f:
-            for song_url in f:
-                dl.download([song_url])
+        dl.download(links)
 
-    print("Downloading done, cropping...")
-    for song in os.listdir(os.curdir):
-        ext = pathlib.Path(song).suffix
+
+def get_silence_intervals(filename):
+    stderr = (ffmpeg
+        .input(filename, threads=4)
+        .filter("silencedetect", n="-50dB", d=0.5)
+        .output("-", format="null")
+        .run(capture_stderr=True)[1]
+        .decode("utf-8")
+    )
+
+    starts_str = re.findall("silence_start: (\d+.\d+)", stderr)
+    ends_str   = re.findall("silence_end: (\d+.\d+)", stderr)
+
+    starts = [float(x) for x in starts_str]
+    ends = [0] + [float(y) for y in ends_str]
+
+    return (starts, ends)
+
+
+def crop_album_to_songs(filename, silence_starts, silence_ends):
+    band_name = filename.split('-')[0].strip(" ")
+
+    songs_intervals = zip(silence_ends, silence_starts)
+    for i, (song_start, sond_end) in enumerate(songs_intervals):
+        ouptut_filename = f"{band_name} - {i+1}.mp3"
+
+        kwargs = {
+            "ss": song_start,
+            "to": sond_end,
+            "threads": 2,
+        }
+
+        (ffmpeg
+        .input(filename, **kwargs)
+        .output(ouptut_filename, format="mp3")
+        .run_async(quiet=True, overwrite_output=True))
+
+        time.sleep(7) # Prevent full CPU usage
+
+
+if __name__ == "__main__":
+    if os.path.exists("links.txt"):
+        with open("links.txt", "r") as file:
+            links = [line.rstrip("\n") for line in file.readlines()]
+
+            try_chdir_except_create("songs")
+            download_from_youtube(links)
+
+    for filename in os.listdir(os.curdir):
+        ext = pathlib.Path(filename).suffix
 
         if ext in [".mp4", ".webm"]:
-            cropping(song)
+            starts, ends = get_silence_intervals(filename)
+            crop_album_to_songs(filename, starts, ends)
