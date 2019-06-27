@@ -5,43 +5,43 @@ import os
 import pathlib
 import re
 import sys
+import time
 import youtube_dl
 
 def cropping(filename):
     print("Processing: ", filename)
 
-    command = f'ffmpeg \
-                -i "{filename}" \
-                -af silencedetect=noise=-50dB:d=0.5 \
-                -f null - 2> vol.txt \
-                -threads 4'
-
-    os.system(command)
+    stderr = (ffmpeg
+    .input(filename, threads=4)
+    .filter("silencedetect", n="-50dB", d=0.5)
+    .output("-", format="null")
+    .run(capture_stderr=True)[1]
+    .decode("utf-8"))
 
     print("Service file has been made.")
 
-    with open ("vol.txt", "rt") as file:
-        file_content = file.read()
-
-        starts_str = re.findall("silence_start: (\d+.\d+)", file_content)
-        ends_str = re.findall("silence_end: (\d+.\d+)", file_content)
+    starts_str = re.findall("silence_start: (\d+.\d+)", stderr)
+    ends_str = re.findall("silence_end: (\d+.\d+)", stderr)
 
     starts = [float(x) for x in starts_str]
     ends = [0] + [float(y) for y in ends_str]
 
     band_name, _ = [x.strip(" ") for x in filename.split('-')]
     for i, (start, end) in enumerate(zip(ends, starts)):
-        res_name = f"{band_name} - {i+1}"
+        res_name = f"{band_name} - {i+1}.mp3"
 
-        command = f'ffmpeg \
-                    -loglevel quiet \
-                    -threads 4 \
-                    -ss {start} \
-                    -i "{filename}" \
-                    -to {end} \
-                    "{res_name}.mp3"'
+        kwargs = {
+            "ss": start,
+            "to": end,
+            "threads": 2,
+        }
 
-        os.system(command)
+        (ffmpeg
+        .input(filename, **kwargs)
+        .output(res_name, format="mp3")
+        .run_async(quiet=True, overwrite_output=True))
+
+        time.sleep(7) # Prevent full CPU usage
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
